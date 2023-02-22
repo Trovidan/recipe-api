@@ -10,17 +10,32 @@ WORKDIR /app
 EXPOSE 8000
 
 ARG DEV=false
+
+#install pip
 RUN python -m venv /py && \
-    /py/bin/pip install --upgrade pip && \
-    /py/bin/pip install -r /tmp/requirements.txt && \
+    /py/bin/pip install --upgrade pip
+
+#install postgres
+RUN apk add --update --no-cache postgresql-client && \
+    apk add --update --no-cache --virtual .tmp-build-deps \
+        build-base postgresql-dev musl-dev
+
+#install requirements
+RUN /py/bin/pip install -r /tmp/requirements.txt && \
     if [ $DEV = "true" ]; \
         then /py/bin/pip install -r /tmp/requirements.dev.txt ; \
-    fi && \
-    rm -rf /tmp && \
-    adduser \
+    fi
+
+#cleanup
+RUN rm -rf /tmp && \
+    apk del .tmp-build-deps
+
+#add auxilary user
+RUN adduser \
         --disabled-password \
         --no-create-home \
         django-user
+
 ENV PATH="/py/bin:$PATH"
 
 USER django-user
